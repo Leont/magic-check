@@ -5,14 +5,13 @@
 
 #include "ppport.h"
 
-static int magic_set(pTHX_ SV* sv, MAGIC* magic)
-{
+static SV* S_call_validate(pTHX_ SV* sv, SV* validator) {
 	dSP;
 	PUSHSTACKi(PERLSI_MAGIC);
 
 	PUSHMARK(SP);
 	EXTEND(SP, 2);
-	PUSHs((SV*)magic->mg_ptr);
+	PUSHs(validator);
 	PUSHs(sv);
 	PUTBACK;
 	call_method("validate", G_SCALAR);
@@ -20,6 +19,13 @@ static int magic_set(pTHX_ SV* sv, MAGIC* magic)
 	SV* result = POPs;
 
 	POPSTACK;
+
+	return result;
+}
+#define call_validate(sv, validator) S_call_validate(aTHX_ sv, validator)
+
+static int magic_set(pTHX_ SV* sv, MAGIC* magic) {
+	SV* result = call_validate(sv, (SV*)magic->mg_ptr);
 
 	if (SvOK(result)) {
 		sv_setsv(sv, magic->mg_obj);
