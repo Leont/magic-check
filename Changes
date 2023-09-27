@@ -1,6 +1,7 @@
 Revision history for Magic-Check
 
 {{$NEXT}}
+          - Validate when applying magic
 
 0.002     2023-09-02 14:21:22+02:00 Europe/Brussels
           - Add a non-fatal mode

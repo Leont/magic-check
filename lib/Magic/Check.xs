@@ -24,6 +24,12 @@ static SV* S_call_validate(pTHX_ SV* sv, SV* validator) {
 }
 #define call_validate(sv, validator) S_call_validate(aTHX_ sv, validator)
 
+#define validate(sv, validator, thrower) do {\
+	SV* result = call_validate(sv, validator);\
+	if (SvOK(result))\
+		thrower(result);\
+	} while (0)
+
 static int croak_set(pTHX_ SV* sv, MAGIC* magic) {
 	SV* result = call_validate(sv, (SV*)magic->mg_ptr);
 
@@ -39,11 +45,7 @@ static int croak_set(pTHX_ SV* sv, MAGIC* magic) {
 static const MGVTBL croak_table = { NULL, croak_set };
 
 static int warn_set(pTHX_ SV* sv, MAGIC* magic) {
-	SV* result = call_validate(sv, magic->mg_obj);
-
-	if (SvOK(result))
-		warn_sv(result);
-
+	validate(sv, magic->mg_obj, warn_sv);
 	return 0;
 }
 
@@ -55,7 +57,10 @@ PROTOTYPES: DISABLED
 
 void check_variable(SV* variable, SV* checker, bool non_fatal = FALSE)
 	CODE:
-	if (non_fatal)
+	if (non_fatal) {
+		validate(variable, checker, warn_sv);
 		sv_magicext(variable, checker, PERL_MAGIC_ext, &warn_table, NULL, 0);
-	else
+	} else {
+		validate(variable, checker, die_sv);
 		sv_magicext(variable, sv_mortalcopy(variable), PERL_MAGIC_ext, &croak_table, (char*)checker, HEf_SVKEY);
+	}
