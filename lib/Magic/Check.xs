@@ -31,13 +31,13 @@ static SV* S_call_validate(pTHX_ SV* sv, SV* validator) {
 	} while (0)
 
 static int croak_set(pTHX_ SV* sv, MAGIC* magic) {
-	SV* result = call_validate(sv, (SV*)magic->mg_ptr);
+	SV* result = call_validate(sv, magic->mg_obj);
 
 	if (SvOK(result)) {
-		sv_setsv(sv, magic->mg_obj);
+		sv_setsv(sv, (SV*)magic->mg_ptr);
 		croak_sv(result);
 	} else
-		sv_setsv(magic->mg_obj, sv);
+		sv_setsv((SV*)magic->mg_ptr, sv);
 
 	return 0;
 }
@@ -62,5 +62,5 @@ void check_variable(SV* variable, SV* checker, bool non_fatal = FALSE)
 		sv_magicext(variable, checker, PERL_MAGIC_ext, &warn_table, NULL, 0);
 	} else {
 		validate(variable, checker, die_sv);
-		sv_magicext(variable, sv_mortalcopy(variable), PERL_MAGIC_ext, &croak_table, (char*)checker, HEf_SVKEY);
+		sv_magicext(variable, checker, PERL_MAGIC_ext, &croak_table, (char*)newSVsv(variable), HEf_SVKEY);
 	}
